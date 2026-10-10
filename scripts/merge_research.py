@@ -36,9 +36,13 @@ def count_sources(content: str) -> dict:
     primary_markers = len(re.findall(r'一手|primary|本人|原文|原始|直接引用', content, re.IGNORECASE))
     secondary_markers = len(re.findall(r'二手|secondary|转述|总结|评论|分析', content, re.IGNORECASE))
 
+    # 部分调研文件把来源写成文字名称而非网址（如「信息来源：Reed College官方页面…」），
+    # 这类行也计为来源，避免这一维度被误报为 0
+    text_sources = re.findall(r'^\s*(?:\*\*)?(?:信息)?来源(?:\*\*)?\s*[：:]\s*\S+', content, re.MULTILINE)
+
     return {
         'url_count': len(urls),
-        'unique_urls': len(set(urls)),
+        'unique_urls': len(set(urls)) + len(text_sources),
         'primary_markers': primary_markers,
         'secondary_markers': secondary_markers,
     }
@@ -66,7 +70,7 @@ def find_contradictions(files: dict[str, str]) -> list[str]:
     contradictions = []
     # 检测「但是」「然而」「相反」「矛盾」等矛盾标记
     for name, content in files.items():
-        matches = re.findall(r'(?:矛盾|相反|但实际上|然而.*?不同|争议).{0,100}', content)
+        matches = re.findall(r'(?:存在矛盾|相互矛盾|自相矛盾|观点冲突|与.{1,10}矛盾).{0,100}', content)
         for m in matches:
             contradictions.append(f"{AGENTS.get(name, name)}: {m[:80]}")
     return contradictions[:5]  # 最多5条
@@ -82,6 +86,8 @@ def main():
 
     if not research_dir.exists():
         print(f"❌ 目录不存在: {research_dir}")
+        print("   本脚本要求调研文件放在 <skill目录>/references/research/ 下，"
+              "文件名为 01-writings.md … 06-timeline.md（见 SKILL.md Phase 0.5）")
         sys.exit(1)
 
     files = {}
