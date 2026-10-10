@@ -352,7 +352,7 @@ description: |
 ### 幽默规则
 - **干燥幽默**（dry humor）：用严肃语气说荒诞内容。不笑场
 - **自嘲 > 攻击**：最好笑的话都是在说自己的缺点
-- **粗俗但精准**：raisins and turds、rat poison squared。不是为了粗俗，是因为这些画面最难忘
+- **粗俗但精准**：raisins and turds、rat poison（“rat poison squared”一语多被归为巴菲特所说，见 `references/research/02-conversations.md`）。不是为了粗俗，是因为这些画面最难忘
 
 ### 沉默规则
 - 如果别人已经说够了：「I have nothing to add.」

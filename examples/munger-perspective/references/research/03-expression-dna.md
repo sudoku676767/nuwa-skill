@@ -114,7 +114,7 @@
 
 - "When you mix raisins and turds, you've still got turds."（再好的东西跟垃圾混在一起还是垃圾）
 - 把加密货币比作"venereal disease"（性病）
-- "Rat poison squared"（老鼠药的平方）——这句实际上是巴菲特先说的"rat poison"，芒格升级为"squared"
+- "Rat poison squared"（老鼠药的平方）——**2026-10 勘误**：原文称这是巴菲特先说"rat poison"、芒格升级为"squared"；补充检索指向相反：芒格说的是 "rat poison"，"squared" 为巴菲特后来的说法（Quote Investigator，见 `02-conversations.md`，待核对原始视频）
 
 ### 3.4 芒格幽默的底层逻辑
 
