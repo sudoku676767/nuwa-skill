@@ -281,7 +281,7 @@ nuwa-skill/
 ├── references/
 │   ├── extraction-framework.md   # 提炼方法论（想深入了解看这个）
 │   └── skill-template.md         # 生成Skill的模板
-└── examples/                          # 13个人物 + 1个主题，含完整调研数据
+└── examples/                          # 14个人物 + 1个主题，含完整调研数据
     ├── steve-jobs-perspective/        # ⭐ 乔布斯（含实战对话记录）
     ├── paul-graham-perspective/       # Paul Graham
     ├── zhang-yiming-perspective/      # 张一鸣
@@ -373,6 +373,6 @@ Not role-playing. Cognitive architecture extraction.
 
 **How it works**: Input a name → 6 parallel research agents → 40+ primary sources → triple-verified mental models → quality-validated SKILL.md
 
-**13 person skills + 1 topic skill included** — all with full research data. The Jobs example includes a complete multi-turn conversation demo.
+**14 person skills + 1 topic skill included** — all with full research data. The Jobs example includes a complete multi-turn conversation demo.
 
 See the Chinese README above for live examples and methodology.

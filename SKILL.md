@@ -358,7 +358,7 @@ Phase 1启动前，**主动扫描 `.claude/skills/` 目录**，检查是否有�
 
 ### Phase 2: 框架提炼（Synthesis）
 
-6个Agent的素材汇总后，执行结构化提炼。先读取 `references/extraction-framework.md` 获取心智模型的三重验证方法论（跨域复现、生成力、自创术语），确保提炼质量。
+6个Agent的素材汇总后，执行结构化提炼。先读取 `references/extraction-framework.md` 获取心智模型的三重验证方法论（跨域复现、生成力、排他性），确保提炼质量。
 
 #### 2.1 心智模型提取（3-7个）
 
