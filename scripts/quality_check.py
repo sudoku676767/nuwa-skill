@@ -15,6 +15,31 @@ import re
 from pathlib import Path
 
 
+def get_section(content: str, title_pattern: str, level: int = 2) -> str | None:
+    """按标题行切出章节：从匹配的标题行起，到下一个同级或更高级标题前止。
+
+    只在标题行内匹配 title_pattern，避免正则跨行误匹配到别处。
+    """
+    lines = content.split('\n')
+    start = None
+    for i, line in enumerate(lines):
+        m = re.match(r'^(#{1,6})\s+(.*)$', line)
+        if not m:
+            continue
+        depth = len(m.group(1))
+        if start is None:
+            if depth <= level and re.search(title_pattern, m.group(2), re.IGNORECASE):
+                start, start_depth = i, depth
+        elif depth <= start_depth:
+            return '\n'.join(lines[start + 1:i])
+    return '\n'.join(lines[start + 1:]) if start is not None else None
+
+
+def count_list_items(text: str) -> int:
+    """数列表项：支持 - * 短横线/星号列表，以及 1. 2. 编号列表。"""
+    return len(re.findall(r'^\s*(?:[-*]|\d+[.)])\s+', text, re.MULTILINE))
+
+
 def check_mental_models(content: str) -> tuple[bool, str]:
     """检查心智模型数量（3-7个）"""
     # 匹配 ### 模型N: 或 ### N. 等模式
@@ -43,9 +68,22 @@ def check_mental_models(content: str) -> tuple[bool, str]:
 
 
 def check_limitations(content: str) -> tuple[bool, str]:
-    """检查每个模型是否有局限性"""
-    has_limitation = bool(re.search(r'局限|失效|不适用|盲区|limitation|blind spot', content, re.IGNORECASE))
-    return has_limitation, "有局限性标注 ✅" if has_limitation else "❌ 未找到局限性描述"
+    """检查每个心智模型是否都有局限性"""
+    section = get_section(content, r'心智模型|Mental Model')
+    if section is None:
+        has = bool(re.search(r'局限|失效|不适用|盲区|limitation|blind spot', content, re.IGNORECASE))
+        return has, "有局限性标注 ✅" if has else "❌ 未找到局限性描述"
+
+    blocks = re.split(r'^###\s+', section, flags=re.MULTILINE)[1:]
+    if not blocks:
+        has = bool(re.search(r'局限|失效|不适用|盲区|limitation|blind spot', section, re.IGNORECASE))
+        return has, "有局限性标注 ✅" if has else "❌ 未找到局限性描述"
+
+    missing = [b.split('\n', 1)[0].strip() for b in blocks
+               if not re.search(r'局限|失效|不适用|盲区|limitation|blind spot', b, re.IGNORECASE)]
+    if missing:
+        return False, f"❌ {len(missing)}个模型缺局限性: {'; '.join(missing)[:60]}"
+    return True, f"{len(blocks)}个模型均有局限性 ✅"
 
 
 def check_expression_dna(content: str) -> tuple[bool, str]:
@@ -62,15 +100,11 @@ def check_expression_dna(content: str) -> tuple[bool, str]:
 
 def check_honest_boundary(content: str) -> tuple[bool, str]:
     """检查诚实边界（至少3条）"""
-    # 找诚实边界section
-    boundary_match = re.search(r'(?:##\s+.*诚实边界|## Honest Boundary)(.*?)(?=\n##\s|\Z)', content, re.DOTALL | re.IGNORECASE)
-    if not boundary_match:
+    boundary = get_section(content, r'诚实边界|Honest Boundar')
+    if boundary is None:
         return False, "❌ 未找到诚实边界section"
 
-    boundary_text = boundary_match.group(1)
-    # 计算列表项
-    items = re.findall(r'^[-*]\s+', boundary_text, re.MULTILINE)
-    count = len(items)
+    count = count_list_items(boundary)
     passed = count >= 3
     return passed, f"诚实边界: {count}条 {'✅' if passed else '❌ (应≥3条)'}"
 
@@ -83,15 +117,34 @@ def check_tensions(content: str) -> tuple[bool, str]:
 
 
 def check_primary_sources(content: str) -> tuple[bool, str]:
-    """检查一手来源占比"""
-    # 找调研来源section
-    source_section = re.search(r'(?:##\s+.*来源|## Source|## Reference)(.*?)(?=\n##\s|\Z)', content, re.DOTALL | re.IGNORECASE)
-    if not source_section:
+    """检查一手来源占比（按列表项计数，而非数关键词）"""
+    source_text = get_section(content, r'来源|信息源|Source|Reference')
+    if source_text is None:
         return True, "未找到来源section（跳过检查）"
 
-    source_text = source_section.group(1)
-    primary = len(re.findall(r'一手|primary|本人著作|原始', source_text, re.IGNORECASE))
-    secondary = len(re.findall(r'二手|secondary|转述|评论', source_text, re.IGNORECASE))
+    primary = secondary = 0
+    mode = None
+    for line in source_text.split('\n'):
+        label = re.match(r'^(?:#{3,6}\s+|\*\*)(.*)', line)
+        if label and re.search(r'一手|二手|外部批评|primary|secondary', label.group(1), re.IGNORECASE):
+            mode = 'p' if re.search(r'一手|primary', label.group(1), re.IGNORECASE) else 's'
+            # 行内写法：**一手来源**：A、B、C
+            inline = re.split(r'[：:]', line, maxsplit=1)
+            if len(inline) == 2 and inline[1].strip():
+                n = len([x for x in re.split(r'[、;；]', inline[1]) if x.strip()])
+                if mode == 'p':
+                    primary += n
+                else:
+                    secondary += n
+            continue
+        if mode and re.match(r'^\s*(?:[-*]|\d+[.)])\s+', line):
+            if mode == 'p':
+                primary += 1
+            else:
+                secondary += 1
+        elif re.match(r'^#{1,6}\s', line):
+            mode = None
+
     total = primary + secondary
     if total == 0:
         return True, "未标记来源类型（跳过检查）"

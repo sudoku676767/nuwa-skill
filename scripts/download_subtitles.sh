@@ -16,6 +16,10 @@ fi
 
 mkdir -p "$OUTPUT_DIR"
 
+# 用本次运行的时间戳文件判断"新下载的字幕"，避免依赖不存在的 /tmp/.ytdlp_marker
+MARKER="$(mktemp)"
+trap 'rm -f "$MARKER"' EXIT
+
 echo ">>> 检查可用字幕..."
 yt-dlp --list-subs --no-download "$URL" 2>/dev/null | tail -20
 
@@ -24,7 +28,7 @@ echo ">>> 尝试下载人工字幕（中文优先）..."
 
 # 尝试1: 人工中文字幕
 if yt-dlp --write-subs --sub-langs "zh-Hans,zh-Hant,zh,zh-CN,zh-TW" --sub-format srt --skip-download -o "$OUTPUT_DIR/%(title)s" "$URL" 2>/dev/null; then
-    FOUND=$(find "$OUTPUT_DIR" -name "*.srt" -newer /tmp/.ytdlp_marker 2>/dev/null | head -1)
+    FOUND=$(find "$OUTPUT_DIR" -name "*.srt" -newer "$MARKER" 2>/dev/null | head -1)
     if [ -n "$FOUND" ]; then
         echo "✅ 下载成功: $FOUND"
         exit 0
@@ -34,7 +38,7 @@ fi
 # 尝试2: 人工英文字幕
 echo ">>> 无中文人工字幕，尝试英文..."
 if yt-dlp --write-subs --sub-langs "en,en-US,en-GB" --sub-format srt --skip-download -o "$OUTPUT_DIR/%(title)s" "$URL" 2>/dev/null; then
-    FOUND=$(find "$OUTPUT_DIR" -name "*.srt" -mmin -1 2>/dev/null | head -1)
+    FOUND=$(find "$OUTPUT_DIR" -name "*.srt" -newer "$MARKER" 2>/dev/null | head -1)
     if [ -n "$FOUND" ]; then
         echo "✅ 下载成功: $FOUND"
         exit 0
@@ -44,7 +48,7 @@ fi
 # 尝试3: 自动生成字幕（中文优先）
 echo ">>> 无人工字幕，尝试自动生成字幕..."
 if yt-dlp --write-auto-subs --sub-langs "zh-Hans,zh,en" --sub-format srt --skip-download -o "$OUTPUT_DIR/%(title)s" "$URL" 2>/dev/null; then
-    FOUND=$(find "$OUTPUT_DIR" -name "*.srt" -o -name "*.vtt" 2>/dev/null | head -1)
+    FOUND=$(find "$OUTPUT_DIR" \( -name "*.srt" -o -name "*.vtt" \) -newer "$MARKER" 2>/dev/null | head -1)
     if [ -n "$FOUND" ]; then
         echo "✅ 自动字幕下载成功: $FOUND"
         exit 0
